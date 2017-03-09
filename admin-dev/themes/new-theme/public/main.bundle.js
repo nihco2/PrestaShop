@@ -59,7 +59,13 @@
 /******/ 	
 /******/ 	
 /******/ 	var hotApplyOnUpdate = true;
+<<<<<<< HEAD
 /******/ 	var hotCurrentHash = "89ce50ba2d1ee7d7908d"; // eslint-disable-line no-unused-vars
+||||||| parent of 7c568356df... CO: Compile assets with webpack
+/******/ 	var hotCurrentHash = "4202f30b0dbe9b561a2d"; // eslint-disable-line no-unused-vars
+=======
+/******/ 	var hotCurrentHash = "15673f42b5d53764b3c0"; // eslint-disable-line no-unused-vars
+>>>>>>> 7c568356df... CO: Compile assets with webpack
 /******/ 	var hotCurrentModuleData = {};
 /******/ 	var hotMainModule = true; // eslint-disable-line no-unused-vars
 /******/ 	var hotCurrentParents = []; // eslint-disable-line no-unused-vars
