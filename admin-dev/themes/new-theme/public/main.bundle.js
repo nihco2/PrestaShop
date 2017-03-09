@@ -60,12 +60,18 @@
 /******/ 	
 /******/ 	var hotApplyOnUpdate = true;
 <<<<<<< HEAD
+<<<<<<< HEAD
 /******/ 	var hotCurrentHash = "89ce50ba2d1ee7d7908d"; // eslint-disable-line no-unused-vars
 ||||||| parent of 7c568356df... CO: Compile assets with webpack
 /******/ 	var hotCurrentHash = "4202f30b0dbe9b561a2d"; // eslint-disable-line no-unused-vars
 =======
 /******/ 	var hotCurrentHash = "15673f42b5d53764b3c0"; // eslint-disable-line no-unused-vars
 >>>>>>> 7c568356df... CO: Compile assets with webpack
+||||||| parent of 8617258fb9... BO: Improve stock management styles
+/******/ 	var hotCurrentHash = "15673f42b5d53764b3c0"; // eslint-disable-line no-unused-vars
+=======
+/******/ 	var hotCurrentHash = "bbb36d7652f8f748feb9"; // eslint-disable-line no-unused-vars
+>>>>>>> 8617258fb9... BO: Improve stock management styles
 /******/ 	var hotCurrentModuleData = {};
 /******/ 	var hotMainModule = true; // eslint-disable-line no-unused-vars
 /******/ 	var hotCurrentParents = []; // eslint-disable-line no-unused-vars
