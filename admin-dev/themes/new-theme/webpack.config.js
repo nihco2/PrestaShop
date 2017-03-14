@@ -90,15 +90,13 @@ let config = {
         loader: 'imports-loader?this=>window&module=>null'
       },
       {
-        test: path.join(__dirname, 'js'),
-        loader: 'babel-loader',
-        query: {
-          presets: ['es2015']
-        }
-      },
-      {
         test: /\.vue$/,
-        loader: 'vue-loader'
+        loader: 'vue-loader',
+        options: {
+          loaders: {
+            js: 'babel-loader?presets[]=es2015&presets[]=stage-2'
+          }
+        }
       },
       {
         test: /\.css$/,
