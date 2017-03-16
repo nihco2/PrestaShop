@@ -73,11 +73,25 @@ class StockControllerTest extends WebTestCase
         parent::tearDown();
     }
 
-    public function testListAction()
+    public function testListProductsAction()
     {
-        $listProductStockRoute = $this->router->generate('api_product_stock_list');
+        $this->assertOkResponseOnListProducts('api_stock_list_products');
+    }
 
-        $this->client->request('GET', $listProductStockRoute);
+    public function testListProductCombinationsAction()
+    {
+        $this->assertOkResponseOnListProducts('api_stock_list_product_combinations', array('productId' => 1));
+    }
+
+    /**
+     * @param $route
+     * @param array $parameters
+     */
+    private function assertOkResponseOnListProducts($route, $parameters = array())
+    {
+        $route = $this->router->generate($route, $parameters);
+
+        $this->client->request('GET', $route);
 
         $response = $this->client->getResponse();
 
@@ -100,7 +114,7 @@ class StockControllerTest extends WebTestCase
      */
     private function assertNotFoundResponseOnEditProductStockQuantity()
     {
-        $editProductStockRoute = $this->router->generate('api_product_stock_edit_product', array(
+        $editProductStockRoute = $this->router->generate('api_stock_edit_product', array(
             'productId' => 9,
         ));
 
@@ -118,7 +132,7 @@ class StockControllerTest extends WebTestCase
      */
     private function assertNotFoundResponseOnEditProductCombinationStockQuantity()
     {
-        $editProductStockRoute = $this->router->generate('api_product_stock_edit_product_combination', array(
+        $editProductStockRoute = $this->router->generate('api_stock_edit_product_combination', array(
             'productId' => 8,
             'productAttributeId' => 1
         ));
@@ -147,13 +161,16 @@ class StockControllerTest extends WebTestCase
 
     private function assertOkResponseOnEditProductCombinationQuantity()
     {
-        $editProductStockRoute = $this->router->generate('api_product_stock_edit_product_combination', array(
+        $editProductStockRoute = $this->router->generate('api_stock_edit_product_combination', array(
             'productId' => 1,
             'productAttributeId' => 1,
         ));
 
-        $expectedQuantity = 10;
-        $this->client->request('POST', $editProductStockRoute, array('quantity' => $expectedQuantity));
+        $expectedAvailableQuantity = 10;
+        $expectedPhysicalQuantity = 12;
+        $expectedReservedQuantity = 2;
+
+        $this->client->request('POST', $editProductStockRoute, array('quantity' => $expectedAvailableQuantity));
 
         /**
          * @var \Symfony\Component\HttpFoundation\JsonResponse $response
@@ -165,11 +182,24 @@ class StockControllerTest extends WebTestCase
         $content = $this->assertResponseBodyValidJson($response);
 
         $this->assertArrayHasKey('product_available_quantity', $content,
-            'The response body should contain a "product_available_quantity" property'
+            'The response body should contain a "product_available_quantity" property.'
+        );
+        $this->assertEquals($expectedAvailableQuantity, $content['product_available_quantity'],
+            'The response body should contain the newly updated physical quantity.'
         );
 
-        $this->assertEquals($expectedQuantity , $content['product_available_quantity'],
-            'The response body should contain the newly updated quantity'
+        $this->assertArrayHasKey('product_physical_quantity', $content,
+            'The response body should contain a "product_physical_quantity" property.'
+        );
+        $this->assertEquals($expectedPhysicalQuantity, $content['product_physical_quantity'],
+            'The response body should contain the newly updated quantity.'
+        );
+
+        $this->assertArrayHasKey('product_reserved_quantity', $content,
+            'The response body should contain a "product_reserved_quantity" property.'
+        );
+        $this->assertEquals($expectedReservedQuantity, $content['product_reserved_quantity'],
+            'The response body should contain the newly updated physical quantity.'
         );
     }
 
