@@ -125,6 +125,9 @@ class StockControllerTest extends WebTestCase
         $this->assertResponseBodyValidJson(400);
 
 
+        $this->client->request('POST', $editProductStockRoute, array(), array(), array(), '{}');
+        $this->assertResponseBodyValidJson(400);
+
         $this->client->request('POST', $editProductStockRoute, array('delta' => 1));
         $this->assertResponseBodyValidJson(404);
     }
@@ -199,7 +202,6 @@ class StockControllerTest extends WebTestCase
         );
 
         $this->client->request('POST', $editProductStockRoute, array('delta' => 2));
-
         $content = $this->assertResponseBodyValidJson(200);
 
         $this->assertArrayHasKey('product_available_quantity', $content,
@@ -210,6 +212,12 @@ class StockControllerTest extends WebTestCase
         );
         $this->assertArrayHasKey('product_reserved_quantity', $content,
             'The response body should contain a "product_reserved_quantity" property.'
+        );
+        $this->assertArrayHasKey('product_thumbnail', $content,
+            'The response body should contain an "image_thumbnail_path" property.'
+        );
+        $this->assertArrayHasKey('combination_thumbnail', $content,
+            'The response body should contain an "image_thumbnail_path" property.'
         );
 
         $this->assertProductQuantity(
@@ -232,6 +240,9 @@ class StockControllerTest extends WebTestCase
             ),
             $content
         );
+
+        $this->client->request('POST', $editProductStockRoute, array(), array(), array(), '{"delta": 0}');
+        $this->assertResponseBodyValidJson(200);
     }
 
     /**
