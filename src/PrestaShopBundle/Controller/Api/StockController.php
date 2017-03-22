@@ -30,7 +30,8 @@ use PrestaShopBundle\Api\QueryParamsCollection;
 use PrestaShopBundle\Api\Stock\Movement;
 use PrestaShopBundle\Api\Stock\MovementsCollection;
 use PrestaShopBundle\Entity\ProductIdentity;
-use PrestaShopBundle\Entity\Repository\Stock\ProductRepository;
+use PrestaShopBundle\Entity\Repository\StockRepository;
+use PrestaShopBundle\Exception\InvalidPaginationParamsException;
 use PrestaShopBundle\Exception\ProductNotFoundException;
 use Psr\Log\LoggerInterface;
 use Symfony\Component\HttpFoundation\JsonResponse;
@@ -46,9 +47,9 @@ class StockController
     public $logger;
 
     /**
-     * @var ProductRepository
+     * @var StockRepository
      */
-    public $productRepository;
+    public $stockRepository;
 
     /**
      * @var QueryParamsCollection
@@ -66,10 +67,16 @@ class StockController
      */
     public function listProductsAction(Request $request)
     {
-        $queryParamsCollection = $this->queryParams->fromRequest($request);
-        $stockOverviewColumns = $this->productRepository->getProducts($queryParamsCollection);
+        try {
+            $queryParamsCollection = $this->queryParams->fromRequest($request);
+        } catch (InvalidPaginationParamsException $exception) {
+            return $this->handleException(new BadRequestHttpException($exception->getMessage(), $exception));
+        }
 
-        return new JsonResponse($stockOverviewColumns);
+        $stock = $this->stockRepository->getStock($queryParamsCollection);
+        $totalPages = $this->stockRepository->countStockPages($queryParamsCollection);
+
+        return new JsonResponse($stock, 200, array('Total-Pages' => $totalPages));
     }
 
     /**
@@ -92,7 +99,7 @@ class StockController
 
         try {
             $movement = new Movement($productIdentity, $delta);
-            $product = $this->productRepository->updateProduct($movement);
+            $product = $this->stockRepository->updateStock($movement);
         } catch (ProductNotFoundException $exception) {
             return $this->handleException($exception);
         }
@@ -116,7 +123,7 @@ class StockController
         $movementsCollection = $this->movements->fromArray($stockMovementsParams);
 
         try {
-            $products = $this->productRepository->bulkUpdateProducts($movementsCollection);
+            $products = $this->stockRepository->bulkUpdateStock($movementsCollection);
         } catch (ProductNotFoundException $exception) {
             return $this->handleException($exception);
         }
