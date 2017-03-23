@@ -67,7 +67,11 @@ class QueryParamsCollection
      */
     private function parseFilterParams(array $queryParams, Request $request)
     {
-        $attributes = $request->attributes->all();
+        $attributes = array_merge(
+            $request->attributes->all(),
+            $request->query->all()
+        );
+
         $filters = array_filter(array_keys($attributes), function ($filter) {
             return in_array($filter, $this->getValidFilterParams());
         });
@@ -85,9 +89,9 @@ class QueryParamsCollection
     /**
      * @return array
      */
-    public function getValidFilterParams()
+    private function getValidFilterParams()
     {
-        return array('productId');
+        return array('productId', 'supplier_id', 'category_id');
     }
 
     /**
@@ -200,18 +204,46 @@ class QueryParamsCollection
     /**
      * @return array
      */
-    public function getSqlFilter()
+    public function getSqlFilters()
     {
         $filters = array();
 
-        if (count($this->queryParams['filter']) > 0) {
-            foreach ($this->queryParams['filter'] as $column => $value) {
-                $column = Inflector::tableize($column);
-                $filters[] = 'AND {' . $column . '} = :' . $column;
-            }
+        foreach ($this->queryParams['filter'] as $column => $value) {
+            $filters = $this->appendSqlFilter($value, $column, $filters);
         }
 
         return implode("\n", $filters);
+    }
+
+    /**
+     * @param $value
+     * @param $column
+     * @param array $filters
+     * @return array
+     */
+    private function appendSqlFilter($value, $column, array $filters)
+    {
+        $column = Inflector::tableize($column);
+
+        if ($column === 'category_id') {
+            $filters[] = sprintf('AND FIND_IN_SET({%s}, %s)', $column, ':categories_ids');
+
+            return $filters;
+        }
+
+        if (!is_array($value)) {
+            $filters[] = sprintf('AND {%s} = :%s', $column, $column);
+
+            return $filters;
+        }
+
+        $placeholders = array_map(function ($index) use ($column) {
+            return ':' . $column . '_' . $index;
+        }, array_keys($value));
+
+        $filters[] = sprintf('AND {%s} IN (%s)', $column,  implode(',', $placeholders));
+
+        return $filters;
     }
 
     /**
@@ -221,7 +253,7 @@ class QueryParamsCollection
     {
         return array_merge(
             $this->getSqlPaginationParams(),
-            $this->getSqlFilterParams()
+            $this->getSqlFiltersParams()
         );
     }
 
@@ -235,24 +267,69 @@ class QueryParamsCollection
         $firstResult = ($pageIndex - 1) * $maxResult;
 
         return array(
-            self::SQL_PARAM_MAX_RESULTS => $maxResult,
-            self::SQL_PARAM_FIRST_RESULT => $firstResult
+            self::SQL_PARAM_MAX_RESULTS => (int)$maxResult,
+            self::SQL_PARAM_FIRST_RESULT => (int)$firstResult
         );
     }
 
     /**
      * @return array
      */
-    private function getSqlFilterParams()
+    private function getSqlFiltersParams()
     {
         $sqlParams = array();
 
-        if (count($this->queryParams['filter']) > 0) {
-            foreach ($this->queryParams['filter'] as $column => $value) {
-                $column = Inflector::tableize($column);
-                $sqlParams[$column] = $value;
-            }
+        if (count($this->queryParams['filter']) === 0) {
+            return $sqlParams;
         }
+
+        foreach ($this->queryParams['filter'] as $column => $value) {
+            $sqlParams = $this->appendSqlFilterParams($column, $value, $sqlParams);
+        }
+
+        return $sqlParams;
+    }
+
+    /**
+     * @param $column
+     * @param $value
+     * @param $sqlParams
+     * @return mixed
+     */
+    private function appendSqlFilterParams($column, $value, $sqlParams)
+    {
+        $column = Inflector::tableize($column);
+
+        if ($column === 'category_id') {
+            return $this->appendSqlCategoryFilterParam($value, $sqlParams);
+        }
+
+        if (!is_array($value)) {
+            $sqlParams[$column] = (int)$value;
+
+            return $sqlParams;
+        }
+
+        array_map(function ($index, $value) use (&$sqlParams, $column) {
+            $sqlParams[$column . '_' . $index] = (int)$value;
+        }, array_keys($value), $value);
+
+        return $sqlParams;
+    }
+
+    /**
+     * @param $value
+     * @param $sqlParams
+     * @return mixed
+     */
+    private function appendSqlCategoryFilterParam($value, $sqlParams)
+    {
+        if (!is_array($value)) {
+            $value = array($value);
+        }
+
+        $value = array_map('intval', $value);
+        $sqlParams[':categories_ids'] = implode(',', $value);
 
         return $sqlParams;
     }

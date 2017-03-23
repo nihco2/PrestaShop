@@ -338,9 +338,8 @@ class StockRepository
             IF (
                 COALESCE(pa.id_product_attribute, 0) > 0,
                 GROUP_CONCAT(
-                    CONCAT(agl.name, " - ", al.name)  
-                  ORDER BY pa.id_product_attribute
-                  SEPARATOR ", " 
+                    DISTINCT CONCAT(agl.name, " - ", al.name)  
+                    SEPARATOR ", " 
                 ),
                 "N/A"
             ) AS combination_name,
@@ -393,6 +392,9 @@ class StockRepository
                 pas.id_product_attribute = pa.id_product_attribute AND 
                 pas.id_shop = :shop_id 
             )
+            LEFT JOIN {table_prefix}category_product cp ON (
+                p.id_product = cp.id_product
+            ) 
             LEFT JOIN {table_prefix}attribute a ON (
                 a.id_attribute = pac.id_attribute
             )
@@ -495,10 +497,14 @@ class StockRepository
      */
     private function andWhere(QueryParamsCollection $queryParams)
     {
-        $filter = $queryParams->getSqlFilter();
-        $filter = strtr($filter, array('{product_id}' => 'p.id_product'));
+        $filters = $queryParams->getSqlFilters();
+        $filters = strtr($filters, array(
+            '{product_id}' => 'p.id_product',
+            '{supplier_id}' => 'p.id_supplier',
+            '{category_id}' => 'cp.id_category'
+        ));
 
-        return $this->andWhereLimitingCombinationsPerProduct() . $filter;
+        return $this->andWhereLimitingCombinationsPerProduct() . $filters;
     }
 
     /**
@@ -547,7 +553,11 @@ class StockRepository
         $sqlParams = $queryParams->getSqlParams();
 
         foreach ($sqlParams as $name => $value) {
-            $statement->bindValue($name, $value, PDO::PARAM_INT);
+            if (is_int($value)) {
+                $statement->bindValue($name, $value, PDO::PARAM_INT);
+            } else {
+                $statement->bindValue($name, $value, PDO::PARAM_STR);
+            }
         }
     }
 
