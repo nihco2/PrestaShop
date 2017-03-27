@@ -309,6 +309,19 @@ services:
             - "@prestashop.adapter.stock_manager"
             - "%database_prefix%"
 
+    prestashop.core.api.supplier.repository:
+        class: PrestaShopBundle\Entity\Repository\SupplierRepository
+        arguments:
+            - "@doctrine.dbal.default_connection"
+            - "%database_prefix%"
+
+    prestashop.core.api.category.repository:
+        class: PrestaShopBundle\Entity\Repository\CategoryRepository
+        arguments:
+            - "@doctrine.dbal.default_connection"
+            - "@prestashop.adapter.legacy.context"
+            - "%database_prefix%"
+
     prestashop.core.api.stock.controller:
         class: PrestaShopBundle\Controller\Api\StockController
         properties:
@@ -316,6 +329,16 @@ services:
             movements: "@prestashop.core.api.stock.movements_collection"
             stockRepository: "@prestashop.core.api.stock.repository"
             queryParams: "@prestashop.core.api.query_params_collection"
+
+    prestashop.core.api.supplier.controller:
+        class: PrestaShopBundle\Controller\Api\SupplierController
+        properties:
+            supplierRepository: "@prestashop.core.api.supplier.repository"
+
+    prestashop.core.api.category.controller:
+        class: PrestaShopBundle\Controller\Api\CategoryController
+        properties:
+            categoryRepository: "@prestashop.core.api.category.repository"
 
     # Managers
     prestashop.adapter.image_manager:
