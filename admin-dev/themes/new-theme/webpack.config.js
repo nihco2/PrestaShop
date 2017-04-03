@@ -95,7 +95,8 @@ let config = {
         options: {
           loaders: {
             js: 'babel-loader?presets[]=es2015&presets[]=stage-2'
-          }
+          },
+          postcss: [require('postcss-cssnext')()]
         }
       },
       {
