@@ -44,7 +44,7 @@ use Product;
 use RuntimeException;
 use Shop;
 
-class StockRepository
+class StockMovementRepository
 {
     use NormalizeFieldTrait;
 
@@ -74,25 +74,14 @@ class StockRepository
     private $shopId;
 
     /**
-     * @var StockManager
+     * @var \Context
      */
-    private $stockManager;
-
-    /**
-     * @var ContextAdapter
-     */
-    private $contextAdapter;
-
-    /**
-     * @var array
-     */
-    private $orderStates = array();
+    private $context;
 
     /**
      * @param Connection $connection
      * @param ContextAdapter $contextAdapter
      * @param ImageManager $imageManager
-     * @param StockManager $stockManager
      * @param $tablePrefix
      * @throws NotImplementedException
      */
@@ -100,143 +89,128 @@ class StockRepository
         Connection $connection,
         ContextAdapter $contextAdapter,
         ImageManager $imageManager,
-        StockManager $stockManager,
         $tablePrefix
     )
     {
         $this->connection = $connection;
         $this->imageManager = $imageManager;
-        $this->stockManager = $stockManager;
 
         $this->tablePrefix = $tablePrefix;
 
-        $this->contextAdapter = $contextAdapter;
-        $context = $contextAdapter->getContext();
+        $this->context = $contextAdapter->getContext();
 
-        if (!$context->employee instanceof Employee) {
+        if (!$this->context->employee instanceof Employee) {
             throw new RuntimeException('Determining the active language requires a contextual employee instance.');
         }
 
-        $languageId = $context->employee->id_lang;
+        $languageId = $this->context->employee->id_lang;
         $this->languageId = (int)$languageId;
 
-        if (!$context->shop instanceof Shop) {
+        if (!$this->context->shop instanceof Shop) {
             throw new RuntimeException('Determining the active shop requires a contextual shop instance.');
         }
 
-        $shop = $context->shop;
+        $shop = $this->context->shop;
         if ($shop->getContextType() !== $shop::CONTEXT_SHOP) {
             throw new NotImplementedException('Shop context types other than "single shop" are not supported');
         }
 
-        $this->orderStates['error'] = (int)Configuration::get('PS_OS_ERROR');
-        $this->orderStates['cancellation'] = (int)Configuration::get('PS_OS_CANCELED');
-
         $this->shopId = $shop->getContextualShopId();
     }
 
-    /**
-     * @param MovementsCollection $movements
-     * @return array
-     */
-    public function bulkUpdateStock(MovementsCollection $movements)
+    public function saveFromMovement(Movement $movement)
     {
-        return $movements->map(function (Movement $movement) {
-            return $this->updateStock($movement);
-        });
-    }
+        $delta = $movement->getDelta();
 
-    /**
-     * @param Movement $movement
-     * @return mixed
-     */
-    public function updateStock(Movement $movement)
-    {
-        $query = '
-            UPDATE {table_prefix}stock_available
-            SET quantity = quantity + :delta,
-            physical_quantity = reserved_quantity + quantity
-            WHERE id_product = :product_id
-            AND id_product_attribute = :combination_id
-        ';
+        // @TODO: good data
+        $mvt_params = array(
+            'id_stock' => 0,
+            'id_order' => 0,
+            'id_supply_order' => 0,
+            'id_stock_mvt_reason' => $delta >= 1 ? 1 : 2,
+            'id_employee' => (int)$this->context->employee->id,
+            'employee_firstname' => $this->context->employee->firstname,
+            'employee_lastname' => $this->context->employee->lastname,
+            'physical_quantity' => abs($delta),
+            'date_add' => date('Y-m-d H:i:s'),
+            'sign' => $delta >= 1 ? 1 : -1,
+            'price_te' => 0,
+            'last_wa' => 0,
+            'current_wa' => 0,
+            'referer' => null,
+        );
 
-        $query = str_replace('{table_prefix}', $this->tablePrefix, $query);
+        $query = 'INSERT INTO {table_prefix}stock_mvt SET ';
+
+        foreach ($mvt_params as $k => $value) {
+            if (null !== $value) {
+                $query .= '`'.$k.'`' . ' = :' . $k . ' ,';
+            } else {
+                unset($mvt_params[$k]);
+            }
+        }
+
+        $query = rtrim(str_replace('{table_prefix}', $this->tablePrefix, $query), ',');
 
         $statement = $this->connection->prepare($query);
 
-        $productIdentity = $movement->getProductIdentity();
-        $delta = $movement->getDelta();
-
-        $statement->bindValue('product_id', $productIdentity->getProductId(), PDO::PARAM_INT);
-        $statement->bindValue('combination_id', $productIdentity->getCombinationId(), PDO::PARAM_INT);
-        $statement->bindValue('delta', $delta, PDO::PARAM_INT);
-
-        if ($statement->execute()) {
-            // @TODO: call with container
-            $stockMovement = new StockMovementRepository(
-                $this->connection,
-                $this->contextAdapter,
-                $this->imageManager,
-                $this->tablePrefix
-            );
-            $stockMovement->saveFromMovement($movement);
+        foreach ($mvt_params as $k => $value) {
+            if (is_int($value)) {
+                $statement->bindValue($k, $value, PDO::PARAM_INT);
+            } else {
+                $statement->bindValue($k, $value, PDO::PARAM_STR);
+            }
         }
 
-        return $this->selectStockBy($productIdentity);
+        return $statement->execute();
     }
 
     /**
      * @param ProductIdentity $productIdentity
      * @return mixed
      */
-    private function selectStockBy(ProductIdentity $productIdentity)
-    {
-        $andWhereClause = '
-            AND p.id_product = :product_id 
-            AND COALESCE(pa.id_product_attribute, 0) = :combination_id';
-        $query = $this->selectStock($andWhereClause);
-
-        $statement = $this->connection->prepare($query);
-        $this->bindStockValues($statement, null, $productIdentity);
-
-        $statement->execute();
-        $rows = $statement->fetchAll();
-
-        if (count($rows) === 0) {
-            throw new ProductNotFoundException(
-                sprintf(
-                    'Product with id %d and combination id %d can not be found',
-                    $productIdentity->getProductId(),
-                    $productIdentity->getCombinationId()
-                )
-            );
-        }
-
-        $rows = $this->addImageThumbnailPaths($rows);
-
-        return $this->castNumericToInt($rows)[0];
-    }
+//    private function selectMovementBy(ProductIdentity $productIdentity)
+//    {
+//        $andWhereClause = '
+//            AND p.id_product = :product_id
+//            AND COALESCE(pa.id_product_attribute, 0) = :combination_id';
+//        $query = $this->selectStock($andWhereClause);
+//
+//        $statement = $this->connection->prepare($query);
+//        $this->bindStockValues($statement, null, $productIdentity);
+//
+//        $statement->execute();
+//        $rows = $statement->fetchAll();
+//
+//        if (count($rows) === 0) {
+//            throw new ProductNotFoundException(
+//                sprintf(
+//                    'Product with id %d and combination id %d can not be found',
+//                    $productIdentity->getProductId(),
+//                    $productIdentity->getCombinationId()
+//                )
+//            );
+//        }
+//
+//        $rows = $this->addImageThumbnailPaths($rows);
+//
+//        return $this->castNumericToInt($rows)[0];
+//    }
 
     /**
      * @param QueryParamsCollection $queryParams
      * @return mixed
      */
-    public function getStock(QueryParamsCollection $queryParams)
+    public function getMovements(QueryParamsCollection $queryParams)
     {
-        $this->stockManager->updatePhysicalProductQuantity(
-            $this->shopId,
-            $this->orderStates['error'],
-            $this->orderStates['cancellation']
-        );
-
-        $query = $this->selectStock(
+        $query = $this->selectMovements(
                 $this->andWhere($queryParams),
                 $this->having($queryParams),
                 $this->orderBy($queryParams)
             ) . $this->paginate();
 
         $statement = $this->connection->prepare($query);
-        $this->bindStockValues($statement, $queryParams);
+        $this->bindMovementsValues($statement, $queryParams);
 
         $statement->execute();
         $rows = $statement->fetchAll();
@@ -250,7 +224,7 @@ class StockRepository
      * @param QueryParamsCollection $queryParams
      * @return bool|string
      */
-    public function countStockPages(QueryParamsCollection $queryParams)
+    public function countMovementPages(QueryParamsCollection $queryParams)
     {
         $query = sprintf(
             'SELECT CEIL(FOUND_ROWS() / :%s) as total_pages',
@@ -297,39 +271,36 @@ class StockRepository
      * @param null $orderByClause
      * @return mixed
      */
-    private function selectStock(
+    private function selectMovements(
         $andWhereClause = '',
         $having = '',
         $orderByClause = null
     )
     {
         if (is_null($orderByClause)) {
-            $orderByClause = $this->orderByProductIds();
+            $orderByClause = $this->orderByMovementsIds();
         }
 
         return str_replace(
             array(
-                '{left_join}',
                 '{and_where}',
                 '{having}',
                 '{order_by}',
                 '{table_prefix}',
             ),
             array(
-                $this->joinLimitingCombinationsPerProduct(),
                 $andWhereClause,
                 $having,
                 $orderByClause,
                 $this->tablePrefix,
             ),
             'SELECT SQL_CALC_FOUND_ROWS
+            sm.id_stock_mvt, sm.id_stock, sm.id_order, 
+            sm.id_employee, sm.employee_lastname, sm.employee_firstname, 
+            sm.physical_quantity, sm.date_add, sm.sign,
+            smrl.name as movement_reason,
             p.id_product AS product_id,
             COALESCE(pa.id_product_attribute, 0) AS combination_id,
-            IF (
-              COALESCE(pa.id_product_attribute, 0) = 0,
-              "N/A",
-              total_combinations
-            ) as total_combinations,
             IF (
                 LENGTH(COALESCE(pa.reference, "")) = 0, 
                 IF (LENGTH(TRIM(p.reference)) > 0, p.reference, "N/A"),
@@ -348,13 +319,15 @@ class StockRepository
             COALESCE(i.id_image, 0) as combination_cover_id,
             COALESCE(s.name, "N/A") AS supplier_name,
             pl.name AS product_name,
-            sa.quantity as product_available_quantity,
-            sa.physical_quantity as product_physical_quantity,
-            sa.reserved_quantity as product_reserved_quantity,
             COALESCE(product_attributes.attributes, "") AS product_attributes,
             COALESCE(product_features.features, "") AS product_features
-            FROM {table_prefix}product p
-            LEFT JOIN {table_prefix}product_attribute pa ON (p.id_product = pa.id_product)
+            FROM {table_prefix}stock_mvt sm 
+            INNER JOIN {table_prefix}stock_mvt_reason_lang smrl ON (
+              smrl.id_stock_mvt_reason = sm.id_stock_mvt_reason
+              AND smrl.id_lang = :language_id)
+            INNER JOIN {table_prefix}stock_available sa ON (sa.id_stock_available = sm.id_stock)
+            LEFT JOIN {table_prefix}product p ON (p.id_product = sa.id_product)
+            LEFT JOIN {table_prefix}product_attribute pa ON (pa.id_product_attribute = sa.id_product_attribute)
             LEFT JOIN {table_prefix}product_lang pl ON (
                 p.id_product = pl.id_product AND
                 pl.id_lang = :language_id
@@ -363,7 +336,6 @@ class StockRepository
                 p.id_product = ps.id_product AND
                 ps.id_shop = :shop_id
             )
-            LEFT JOIN {table_prefix}stock_available sa ON (p.id_product = sa.id_product)
             LEFT JOIN {table_prefix}image ic ON (
                 p.id_product = ic.id_product AND
                 ic.cover = 1
@@ -456,7 +428,6 @@ class StockRepository
             ) product_features ON (
                 product_features.id_product = p.id_product
             )
-            {left_join}
             WHERE
             ps.id_shop = :shop_id AND
             sa.id_shop = :shop_id AND
@@ -471,35 +442,11 @@ class StockRepository
     }
 
     /**
-     * @return string
-     */
-    private function joinLimitingCombinationsPerProduct()
-    {
-        return 'LEFT JOIN (
-            SELECT pa.id_product product_id,
-            COUNT(pa.id_product_attribute) total_combinations
-            FROM {table_prefix}product_attribute pa 
-            GROUP BY pa.id_product
-        ) combinations_per_product ON (combinations_per_product.product_id = p.id_product) ';
-    }
-
-    /**
-     * @return string
-     */
-    private function andWhereLimitingCombinationsPerProduct()
-    {
-        return 'AND (
-            ISNULL(pa.id_product_attribute) OR
-            NOT ISNULL(combinations_per_product.total_combinations)
-        ) ';
-    }
-
-    /**
      * @param Statement $statement
      * @param QueryParamsCollection|null $queryParams
      * @param ProductIdentity|null $productIdentity
      */
-    private function bindStockValues(
+    private function bindMovementsValues(
         Statement $statement,
         QueryParamsCollection $queryParams = null,
         ProductIdentity $productIdentity = null
@@ -522,9 +469,9 @@ class StockRepository
     /**
      * @return string
      */
-    private function orderByProductIds()
+    private function orderByMovementsIds()
     {
-        return 'ORDER BY p.id_product DESC, COALESCE(pa.id_product_attribute, 0)';
+        return 'ORDER BY sm.date_add DESC';
     }
 
     /**
@@ -542,7 +489,7 @@ class StockRepository
             '{features}' => 'product_features.features',
         ));
 
-        return $this->andWhereLimitingCombinationsPerProduct() . $filters;
+        return $filters;
     }
 
     /**
