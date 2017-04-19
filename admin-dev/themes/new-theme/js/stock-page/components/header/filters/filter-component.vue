@@ -23,6 +23,7 @@
         v-else 
         v-for="(item, index) in items" 
         v-show="item.visible"
+        class="item"
       >
         <PSTreeItem 
           :label="item[label]"
@@ -76,6 +77,8 @@
     methods: {
       onCheck(obj) {
         let itemLabel = obj.item[this.label];
+        let filterType = this.hasChildren ? 'category' : 'supplier';
+
         if(obj.checked) {
           this.tags.push(itemLabel);
         }
@@ -87,10 +90,10 @@
            this.splice = true;
         }
         if(this.tags.length) {
-          this.$emit('active', true, this.filterList(this.tags));
+          this.$emit('active', this.filterList(this.tags), filterType);
         }
         else {
-          this.$emit('active', false);
+          this.$emit('active', [], filterType);
         }
       },
       onTyping(val) {
@@ -108,11 +111,13 @@
         this.currentVal = '';
       },
       filterList(tags) {
-        let idList = []
-        
-        this.list.map((data)=> {
-          if(tags.indexOf(data[this.label]) !== -1) {
-            idList.push(data[this.itemID]);
+        let idList = [];
+        let categoryList = this.$store.getters.categoryList;
+        let list = this.hasChildren ? categoryList : this.list;
+
+        list.map((data)=> {
+          if(tags.indexOf(data[this.label]) !== -1 && idList.indexOf(Number(data[this.itemID])) === -1) {
+            idList.push(Number(data[this.itemID]));
           }
         });
         return idList;
@@ -148,6 +153,9 @@
   .filter-container {
     border: $gray-light 1px solid;
     padding: 10px;
+  }
+  .item {
+    margin-bottom: 5px;
   }
   ul {
     list-style: none;
