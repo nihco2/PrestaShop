@@ -38,10 +38,10 @@
 </template>
 
 <script>
-  import PSTags from '../../utils/ps-tags';
-  import PSTreeItem from '../../utils/ps-tree-item';
-  import PSTree from '../../utils/ps-tree';
-  import { EventBus } from '../../utils/event-bus';
+  import PSTags from 'app/widgets/ps-tags';
+  import PSTreeItem from 'app/widgets/ps-tree-item';
+  import PSTree from 'app/widgets/ps-tree';
+  import { EventBus } from 'app/utils/event-bus';
   import _ from 'lodash';
 
   export default {

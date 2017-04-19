@@ -26,7 +26,7 @@ let config = {
       './js/theme.js',
     ],
     stock: [
-      './js/stock-page/main.js',
+      './js/app/pages/stock/main.js',
     ]
   },
   output: {
@@ -41,7 +41,8 @@ let config = {
   resolve: {
     extensions: ['.js', '.vue', '.json'],
     alias: {
-      vue$: 'vue/dist/vue.common.js'
+      vue$: 'vue/dist/vue.common.js',
+      app: path.resolve(__dirname, 'js/app')
     }
   },
   module: {
