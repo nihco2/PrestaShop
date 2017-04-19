@@ -26,23 +26,20 @@
 
 namespace PrestaShopBundle\Entity\Repository;
 
-use Configuration;
 use Doctrine\DBAL\Driver\Connection;
-use Doctrine\DBAL\Driver\Statement;
-use PDO;
 use PrestaShop\PrestaShop\Adapter\ImageManager;
 use PrestaShop\PrestaShop\Adapter\LegacyContext as ContextAdapter;
+use PrestaShop\PrestaShop\Adapter\Product\ProductDataProvider;
 use PrestaShop\PrestaShop\Adapter\StockManager;
+use PrestaShop\PrestaShop\Core\Stock\StockManager as StockManagerCore;
 use PrestaShopBundle\Api\QueryParamsCollection;
 use PrestaShopBundle\Api\Stock\Movement;
 use PrestaShopBundle\Api\Stock\MovementsCollection;
 use PrestaShopBundle\Entity\ProductIdentity;
 use PrestaShopBundle\Exception\NotImplementedException;
 use PrestaShopBundle\Exception\ProductNotFoundException;
-use Product;
-use RuntimeException;
-use Shop;
 use Symfony\Component\DependencyInjection\ContainerInterface;
+use PrestaShop\PrestaShop\Adapter\Configuration;
 
 class StockRepository extends StockManagementRepository
 {
@@ -84,8 +81,9 @@ class StockRepository extends StockManagementRepository
 
         $this->stockManager = $stockManager;
 
-        $this->orderStates['error'] = (int)Configuration::get('PS_OS_ERROR');
-        $this->orderStates['cancellation'] = (int)Configuration::get('PS_OS_CANCELED');
+        $configuration = new Configuration();
+        $this->orderStates['error'] = (int)$configuration->get('PS_OS_ERROR');
+        $this->orderStates['cancellation'] = (int)$configuration->get('PS_OS_CANCELED');
     }
 
     /**
@@ -94,67 +92,60 @@ class StockRepository extends StockManagementRepository
      */
     public function bulkUpdateStock(MovementsCollection $movements)
     {
-        return $movements->map(function (Movement $movement) {
-            return $this->updateStock($movement);
+        $products = $movements->map(function (Movement $movement) {
+            return $this->updateStock($movement, true);
         });
+
+        $this->syncAllStock();
+
+        return $products;
     }
 
     /**
      * @param Movement $movement
      * @return mixed
      */
-    public function updateStock(Movement $movement)
+    public function updateStock(Movement $movement, $syncStock = true)
     {
-        $query = '
-            UPDATE {table_prefix}stock_available
-            SET quantity = quantity + :delta,
-            physical_quantity = reserved_quantity + quantity
-            WHERE id_product = :product_id
-            AND id_product_attribute = :combination_id
-        ';
-
-        $query = str_replace('{table_prefix}', $this->tablePrefix, $query);
-
-        $statement = $this->connection->prepare($query);
-
         $productIdentity = $movement->getProductIdentity();
         $delta = $movement->getDelta();
 
-        $statement->bindValue('product_id', $productIdentity->getProductId(), PDO::PARAM_INT);
-        $statement->bindValue('combination_id', $productIdentity->getCombinationId(), PDO::PARAM_INT);
-        $statement->bindValue('delta', $delta, PDO::PARAM_INT);
+        if ($productIdentity->getProductId() && $delta !== 0) {
+            $product = (new ProductDataProvider())->getProduct($productIdentity->getProductId());
 
-        if ($statement->execute()) {
-            $idStock = $this->getStockBy($productIdentity);
-            if (!empty($idStock)) {
-                $movement->setIdStock((int)$idStock);
-                $stockMovement = $this->container->get('prestashop.core.api.stockMovement.repository');
-                $stockMovement->saveFromMovement($movement);
+            if ($product->id) {
+                $configurationAdapter = new Configuration();
+
+                (new StockManagerCore())->updateQuantity(
+                    $product,
+                    $productIdentity->getCombinationId(),
+                    $delta,
+                    $this->contextAdapter->getContext()->shop->id,
+                    $add_movement = true,
+                    array(
+                        'id_stock_mvt_reason' => ($delta >= 1 ? $configurationAdapter->get('PS_STOCK_MVT_INC_EMPLOYEE_EDITION') : $configurationAdapter->get('PS_STOCK_MVT_DEC_EMPLOYEE_EDITION')),
+                    )
+                );
+            }
+
+            if (true === $syncStock) {
+                $this->syncAllStock();
             }
         }
 
         return $this->selectStockBy($productIdentity);
     }
 
-    private function getStockBy(ProductIdentity $productIdentity)
+    /**
+     * Sync all stock with Manager
+     */
+    private function syncAllStock()
     {
-        $query = '
-                SELECT id_stock_available 
-                FROM {table_prefix}stock_available
-                WHERE id_product = :product_id
-                AND id_product_attribute = :combination_id
-            ';
-
-        $query = str_replace('{table_prefix}', $this->tablePrefix, $query);
-
-        $statement = $this->connection->prepare($query);
-
-        $statement->bindValue('product_id', $productIdentity->getProductId(), PDO::PARAM_INT);
-        $statement->bindValue('combination_id', $productIdentity->getCombinationId(), PDO::PARAM_INT);
-
-        $statement->execute();
-
-        return $statement->fetchColumn();
+        (new \PrestaShop\PrestaShop\Adapter\StockManager())->updatePhysicalProductQuantity(
+            $this->contextAdapter->getContext()->shop->id,
+            $this->orderStates['error'],
+            $this->orderStates['cancellation']
+        );
     }
 
     /**

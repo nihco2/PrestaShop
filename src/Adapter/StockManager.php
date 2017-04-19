@@ -44,7 +44,7 @@ class StockManager implements \PrestaShopBundle\Service\DataProvider\StockInterf
      */
     public function getStockAvailableByProduct($product, $id_product_attribute = null, $id_shop = null)
     {
-        return new \StockAvailableCore(\StockAvailableCore::getStockAvailableIdByProductId($product->id, $id_product_attribute, $id_shop));
+        return $this->newStockAvailable($this->getStockAvailableIdByProductId($product->id, $id_product_attribute, $id_shop));
     }
 
     /**
@@ -69,7 +69,7 @@ class StockManager implements \PrestaShopBundle\Service\DataProvider\StockInterf
 
         $updatePhysicalQuantityQuery = '
             UPDATE {table_prefix}stock_available sa
-            SET sa.physical_quantity = sa.quantity - sa.reserved_quantity
+            SET sa.physical_quantity = sa.quantity + sa.reserved_quantity
         ';
         $updatePhysicalQuantityQuery = str_replace('{table_prefix}', _DB_PREFIX_, $updatePhysicalQuantityQuery);
 
@@ -96,6 +96,7 @@ class StockManager implements \PrestaShopBundle\Service\DataProvider\StockInterf
                 o.id_order = oh.id_order AND
                 o.current_state = oh.id_order_state AND
                 oh.id_order_state = os.id_order_state AND
+                oh.id_order_history = (SELECT MAX(id_order_history) FROM ps_order_history WHERE id_order = o.id_order) AND 
                 o.id_order = od.id_order AND
                 od.id_shop = :shop_id AND
                 os.shipped != 1 AND (
@@ -120,11 +121,54 @@ class StockManager implements \PrestaShopBundle\Service\DataProvider\StockInterf
                 _DB_PREFIX_,
                 (int)$shopId,
                 (int)$errorState,
-                (int)$cancellationState
+                (int)$cancellationState,
             ),
             $updateReservedQuantityQuery
         );
 
         return Db::getInstance()->execute($updateReservedQuantityQuery);
+    }
+
+    /**
+     * Instance a new StockMvt
+     *
+     * @param null $stockMvtId
+     * @return \StockMvt
+     */
+    public function newStockMvt($stockMvtId = null)
+    {
+        if (is_integer($stockMvtId)) {
+            return new \StockMvt($stockMvtId);
+        }
+
+        return new \StockMvt();
+    }
+
+    /**
+     * Instance a new StockAvailable
+     *
+     * @param null $stockAvailableId
+     * @return \StockAvailable
+     */
+    public function newStockAvailable($stockAvailableId = null)
+    {
+        if (is_integer($stockAvailableId)) {
+            return new \StockAvailable($stockAvailableId);
+        }
+
+        return new \StockAvailable();
+    }
+
+    /**
+     * Use legacy getStockAvailableIdByProductId
+     *
+     * @param $productId
+     * @param null $productAttributeId
+     * @param null $shopId
+     * @return bool|int
+     */
+    public function getStockAvailableIdByProductId($productId, $productAttributeId = null, $shopId = null)
+    {
+        return \StockAvailable::getStockAvailableIdByProductId($productId, $productAttributeId, $shopId);
     }
 }

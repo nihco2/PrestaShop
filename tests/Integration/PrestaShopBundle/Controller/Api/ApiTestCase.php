@@ -98,6 +98,9 @@ abstract class ApiTestCase extends WebTestCase
         $languageMock = $this->mockLanguage();
         $contextMock->language = $languageMock->reveal();
 
+        $linkMock = $this->mockLink();
+        $contextMock->link = $linkMock->reveal();
+
         $shopMock = $this->mockShop();
         $contextMock->shop = $shopMock->reveal();
 
@@ -133,13 +136,27 @@ abstract class ApiTestCase extends WebTestCase
         return $languageMock;
     }
 
+    /**
+     * @return object
+     */
+    private function mockLink()
+    {
+        $linkMock = $this->prophet->prophesize('\Link');
+
+        return $linkMock;
+    }
+
     private function mockShop()
     {
         /** @var \Shop $shopMock */
         $shopMock = $this->prophet->prophesize('\Shop');
         $shopMock->getContextualShopId()->willReturn(1);
-
         $shopMock->getContextType()->willReturn(Shop::CONTEXT_SHOP);
+        $shopMock->id = 1;
+
+        $shopGroupMock = $this->prophet->prophesize('\ShopGroup');
+        $shopGroupMock->id = 1;
+        $shopMock->getGroup()->willReturn($shopGroupMock);
 
         return $shopMock;
     }
