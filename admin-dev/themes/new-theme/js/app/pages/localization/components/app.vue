@@ -24,7 +24,7 @@
  *-->
 
 <template>
-  <div v-if="isReady" class="tab-content clearfix">
+  <div v-if="isReady">
     <router-view class="view"></router-view>
   </div>
 </template>

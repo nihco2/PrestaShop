@@ -1,5 +1,5 @@
 <template>
-  <div id="currencies" class="tab-pane fade show active" role="tabpanel">
+  <div id="currencies" class="card p-2 clearfix" role="tabpanel">
     <h2>{{trans('title_currency')}}</h2>
     <CurrenciesForm />
     <FormatTable />

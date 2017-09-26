@@ -35,6 +35,7 @@ class LocalizationApi extends AbstractApi
     {
         return array(
             'button_cancel' => $this->translator->trans('Cancel', array(), 'Admin.Global'),
+            'button_reset' => $this->translator->trans('Reset settings', array(), 'Admin.Global'),
             'button_save' => $this->translator->trans('Save', array(), 'Admin.Global'),
             'label_code' => $this->translator->trans('ISO code', array(), 'Admin.International'),
             'label_code_numeric' => $this->translator->trans('Numeric ISO code', array(), 'Admin.International'),
@@ -50,11 +51,11 @@ class LocalizationApi extends AbstractApi
             'label_file' => $this->translator->trans('Add File', array(), 'Admin.International'),
             'label_flag' => $this->translator->trans('Flag', array(), 'Admin.International'),
             'label_format' => $this->translator->trans('Format', array(), 'Admin.International'),
+            'label_format_negative' => $this->translator->trans('Negative price format', array(), 'Admin.International'),
             'label_format_preview' => $this->translator->trans('Format preview', array(), 'Admin.International'),
             'label_language' => $this->translator->trans('Choose a language', array(), 'Admin.International'),
             'label_language_name' => $this->translator->trans('Language name', array(), 'Admin.International'),
             'label_image' => $this->translator->trans('"No-picture" image', array(), 'Admin.International'),
-            'label_reset' => $this->translator->trans('Reset settings', array(), 'Admin.International'),
             'label_switch' => $this->translator->trans('Enabled', array(), 'Admin.International'),
             'label_switch_rtl' => $this->translator->trans('Right to Left', array(), 'Admin.International'),
             'label_symbol' => $this->translator->trans('Symbol', array(), 'Admin.International'),
