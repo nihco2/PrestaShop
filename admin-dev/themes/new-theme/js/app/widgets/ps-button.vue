@@ -34,6 +34,7 @@
      primary: { type: Boolean },
      ghost: { type: Boolean },
      lg: { type: Boolean },
+     sm: { type: Boolean },
    },
    computed: {
      classObject() {
@@ -43,6 +44,7 @@
          'btn-primary': this.primary,
          'btn-secondary': !this.primary,
          'btn-lg': this.lg,
+         'btn-sm': this.sm,
        };
      },
    },
