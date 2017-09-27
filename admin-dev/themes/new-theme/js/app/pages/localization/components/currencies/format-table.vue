@@ -11,7 +11,7 @@
           </tr>
         </thead>
         <tbody>
-          <CurrencyLine
+          <FormatLine
             v-for="(language, index) in 5"
             key=${index}
           />
@@ -23,12 +23,12 @@
 
 <script>
 import PSTable from 'app/widgets/ps-table/ps-table';
-import CurrencyLine from './currency-line';
+import FormatLine from './format-line';
 
   export default {
     components: {
       PSTable,
-      CurrencyLine,
+      FormatLine,
     },
   };
 </script>

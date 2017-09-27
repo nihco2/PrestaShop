@@ -50,6 +50,8 @@
         var data = {
             baseUrl: '{{ app.request.getBasePath() }}',
             translationUrl: '{{ url('api_i18n_translations_list', {'page' : 'localization'}) }}',
+            apiLocalizationCurrencyUrl: '{{ url('api_localization_currency_get', {'id' : 'id' }) }}',
+            apiLocalizationCurrenciesUrl: '{{ url('api_localization_currency_available_list') }}',
         }
     </script>
     {% if webpack_server %}

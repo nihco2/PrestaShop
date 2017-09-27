@@ -20,5 +20,9 @@
       FormatTable,
       PSButton,
     },
+    mounted() {
+      this.$store.dispatch('getCurrency');
+      this.$store.dispatch('getCurrencies');
+    },
   };
 </script>

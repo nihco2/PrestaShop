@@ -26,12 +26,15 @@ import Vue from 'vue';
 import Vuex from 'vuex';
 import VueResource from 'vue-resource';
 import { showGrowl } from 'app/utils/growl';
+import _ from 'lodash';
 
 Vue.use(Vuex);
 Vue.use(VueResource);
 
 const state = {
   translations: {},
+  currencies: [],
+  currency: {},
   isReady: false,
 };
 
@@ -43,6 +46,24 @@ const actions = {
         state.translations[t.translation_id] = t.name;
       });
       state.isReady = true;
+    }, (error) => {
+      showGrowl('error', error.statusText);
+    });
+  },
+  getCurrency: () => {
+    const url = window.data.apiLocalizationCurrencyUrl;
+    Vue.http.get(url).then((response) => {
+      state.currency = response.body.data;
+    }, (error) => {
+      showGrowl('error', error.statusText);
+    });
+  },
+  getCurrencies: () => {
+    const url = window.data.apiLocalizationCurrenciesUrl;
+    Vue.http.get(url).then((response) => {
+      _.forEach(response.body.data, (currency) => {
+        state.currencies.push(currency.name);
+      });
     }, (error) => {
       showGrowl('error', error.statusText);
     });

@@ -24,9 +24,9 @@
  *-->
 <template>
   <div 
-    class="switch-input switch-input-lg" 
+    class="switch-input" 
     @click="onClick"
-    :class="{'-checked':isChecked}"
+    :class="classObject"
     >
     <input 
       data-toggle="switch" 
@@ -34,13 +34,25 @@
       data-inverse="true" 
       type="checkbox"
       :checked="isChecked"
-      
     >
   </div>
 </template>
 
 <script>
   export default {
+    props: {
+      lg: { type: Boolean },
+      sm: { type: Boolean },
+    },
+    computed: {
+      classObject() {
+        return {
+          'switch-input-lg': this.lg,
+          'switch-input-sm': this.sm,
+          '-checked': this.isChecked,
+        };
+      },
+    },
     methods: {
       onClick() {
         this.isChecked = !this.isChecked;

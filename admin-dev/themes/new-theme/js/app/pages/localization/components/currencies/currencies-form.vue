@@ -1,13 +1,13 @@
 <template>
   <form>
     <div class="row">
-      <div  class="col-sm-4">
+      <div  class="col-sm-3">
         <label>{{trans('label_currency')}}</label>
         <PSHelp 
           content="Vivamus sagittis lacus vel augue laoreet rutrum faucibus." 
           placement="right"
         />
-        <PSSelect id="select-currencies" data-toggle="select2">--</PSSelect>
+        <PSSelect id="select-currencies" data-toggle="select2" :items="currencies" itemName="name">--</PSSelect>
       </div>
       <div  class="col-sm-2">
         <label class="d-block">{{trans('label_switch')}}</label>
@@ -15,7 +15,7 @@
       </div>
     </div>
     <div class="row align-items-end mt-4">
-      <div  class="col-sm-5">
+      <div  class="col-sm-4">
         <label>{{trans('label_currency_name')}}</label>
         <PSInput />
       </div>
@@ -50,7 +50,7 @@
           content="Vivamus sagittis lacus vel augue laoreet rutrum faucibus." 
           placement="right"
         />
-        <PSSelect :items="decimals" itemName="number">0</PSSelect>
+        <PSSelect :items="decimals" itemName="number" itemID="value" selected="0" />
       </div>
       <div class="col-sm-1">
         <label>{{trans('label_exchange')}}<sup>*</sup></label>
@@ -75,20 +75,27 @@
     },
     computed: {
       decimals() {
-        return [{
-          number: 1,
-        }, {
-          number: 2,
-        }, {
-          number: 3,
-        }];
+        const decimals = [];
+        for (let i = 0; i <= 10; i += 1) {
+          decimals.push({
+            number: i,
+            value: i,
+          });
+        }
+        return decimals;
+      },
+      currencies() {
+        return this.$store.state.currencies;
       },
     },
     mounted() {
       $('#select-currencies').select2({
-        data: ['dollar', 'euro']
+        data: this.currencies,
       });
     },
+    data: () => ({
+      currenciesList: [],
+    }),
   };
 </script>
 
