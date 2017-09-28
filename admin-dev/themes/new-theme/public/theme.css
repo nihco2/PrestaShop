@@ -3295,6 +3295,11 @@ ul.category-tree {
   margin-right: 5px;
   margin-right: 0.3125rem; }
 
+#localization .nav-pills {
+  margin-top: -70px;
+  position: fixed;
+  z-index: 502; }
+
 /**
  * Module Modal CSS
  */
