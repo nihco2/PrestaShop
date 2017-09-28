@@ -46,3 +46,12 @@ export default {
   },
 };
 </script>
+
+<style lang="sass">
+  .select2-container {
+  .select2-selection {
+    background-color: transparent;
+  }
+    z-index: 2;
+  }
+</style>

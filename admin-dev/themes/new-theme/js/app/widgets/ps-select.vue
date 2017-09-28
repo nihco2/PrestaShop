@@ -64,6 +64,7 @@
     select {
       appearance: none;
       border-radius: 0;
+      z-index: 2;
     }
     &::after {
       content: "\E313";
@@ -73,6 +74,7 @@
       position: absolute;
       right: 5px;
       top: 5px;
+      z-index: 1;
     }
   }
 </style>

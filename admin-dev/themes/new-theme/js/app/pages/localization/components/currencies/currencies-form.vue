@@ -7,7 +7,7 @@
           content="Vivamus sagittis lacus vel augue laoreet rutrum faucibus." 
           placement="right"
         />
-        <PSSelect id="select-currencies" data-toggle="select2" :items="currencies" itemName="name">--</PSSelect>
+        <PSSelect id="select-currencies" data-toggle="select2" :items="currencies" itemName="name"></PSSelect>
       </div>
       <div  class="col-sm-2">
         <label class="d-block">{{trans('label_switch')}}</label>
@@ -88,14 +88,14 @@
         return this.$store.state.currencies;
       },
     },
-    mounted() {
-      $('#select-currencies').select2({
-        data: this.currencies,
-      });
+    watch: {
+      currencies() {
+        $('#select-currencies select').select2({
+          data: this.currencies,
+        });
+        $('b[role="presentation"]').hide();
+      },
     },
-    data: () => ({
-      currenciesList: [],
-    }),
   };
 </script>
 
