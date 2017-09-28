@@ -7,7 +7,7 @@
           content="Vivamus sagittis lacus vel augue laoreet rutrum faucibus." 
           placement="right"
         />
-        <PSSelect id="select-currencies" data-toggle="select2" :items="currencies" itemName="name"></PSSelect>
+        <PSSelect id="select-currencies" ref="select-currencies" data-toggle="select2" :items="currencies" itemName="name"></PSSelect>
       </div>
       <div  class="col-sm-2">
         <label class="d-block">{{trans('label_switch')}}</label>
@@ -17,7 +17,7 @@
     <div class="row align-items-end mt-4">
       <div  class="col-sm-4">
         <label>{{trans('label_currency_name')}}</label>
-        <PSInput />
+        <PSInput :value="currency.name" />
       </div>
       <div class="col-sm-1">
         <label>{{trans('label_symbol')}}</label>
@@ -34,7 +34,7 @@
           content="Vivamus sagittis lacus vel augue laoreet rutrum faucibus." 
           placement="right"
         />
-        <PSInput />
+        <PSInput :value="currency.code" />
       </div>
       <div class="col-sm-2">
         <label>{{trans('label_code_numeric')}}</label>
@@ -42,7 +42,7 @@
           content="Vivamus sagittis lacus vel augue laoreet rutrum faucibus." 
           placement="right"
         />
-        <PSInput />
+        <PSInput :value="currency.numericCode" />
       </div>
       <div class="col-sm-1">
         <label>{{trans('label_decimals')}}</label>
@@ -50,11 +50,11 @@
           content="Vivamus sagittis lacus vel augue laoreet rutrum faucibus." 
           placement="right"
         />
-        <PSSelect :items="decimals" itemName="number" itemID="value" selected="0" />
+        <PSSelect ref="decimals" :items="decimals" itemName="name" itemID="value"  />
       </div>
       <div class="col-sm-1">
         <label>{{trans('label_exchange')}}<sup>*</sup></label>
-        <PSInput />
+        <PSInput :value="currency.exchangeRate" />
       </div>
     </div>
   </form>
@@ -78,11 +78,14 @@
         const decimals = [];
         for (let i = 0; i <= 10; i += 1) {
           decimals.push({
-            number: i,
+            name: i,
             value: i,
           });
         }
         return decimals;
+      },
+      currency() {
+        return this.$store.state.currency;
       },
       currencies() {
         return this.$store.state.currencies;
@@ -94,6 +97,8 @@
           data: this.currencies,
         });
         $('b[role="presentation"]').hide();
+        this.$refs.decimals.selected = this.currency.decimals;
+        this.$refs['select-currencies'].selected = this.currency.name;
       },
     },
   };

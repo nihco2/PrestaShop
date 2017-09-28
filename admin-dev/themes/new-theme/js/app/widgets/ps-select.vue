@@ -24,11 +24,12 @@
  *-->
 <template>
   <div class="ps-select">
-    <select class="form-control" @change="onChange">
+    <select class="form-control" @change="onChange" v-model="selected">
       <option v-if="hasSlotData">
         <slot />
       </option>
       <option
+        v-if="item[itemName]"
         v-for="item in items"
         :value="item[itemID]"
       >
@@ -40,7 +41,7 @@
 
 <script>
   export default {
-    props: ['items', 'itemID', 'itemName', 'selected'],
+    props: ['items', 'itemID', 'itemName'],
     computed: {
       hasSlotData() {
         return this.$slots.default;
@@ -54,6 +55,9 @@
         });
       },
     },
+    data: () => ({
+      selected: 'default',
+    }),
   };
 </script>
 
