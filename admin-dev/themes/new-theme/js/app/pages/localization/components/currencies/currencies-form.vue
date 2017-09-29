@@ -7,7 +7,14 @@
           content="Vivamus sagittis lacus vel augue laoreet rutrum faucibus." 
           placement="right"
         />
-        <PSSelect id="select-currencies" ref="select-currencies" data-toggle="select2" :items="currencies" itemName="name"></PSSelect>
+        <PSSelect 
+          id="select-currencies" 
+          ref="select-currencies" 
+          data-toggle="select2" 
+          :items="currencies" 
+          itemName="name"
+          itemID="id"
+        />
       </div>
       <div  class="col-sm-2">
         <label class="d-block">{{trans('label_switch')}}</label>
@@ -101,12 +108,15 @@
       currencies() {
         $('#select-currencies select').select2({
           data: this.currencies,
+        }).on('select2:select', (e) => {
+          const id = $(e.target).val();
+          this.$store.dispatch('getCurrency', id);
         });
         $('b[role="presentation"]').hide();
+        this.$refs['select-currencies'].selected = this.currency.name;
       },
       currency() {
         this.$refs.decimals.selected = this.currency.decimals;
-        this.$refs['select-currencies'].selected = this.currency.name;
       },
       currentLocalization(current) {
         this.symbol = current.symbol;

@@ -53,7 +53,7 @@
           content="Vivamus sagittis lacus vel augue laoreet rutrum faucibus." 
           placement="right"
         />
-        <PSDatePicker />
+        <PSInput />
       </div>
       <div class="col-sm-2">
         <label>
@@ -63,7 +63,7 @@
             placement="right"
           />
         </label>
-        <PSDatePicker />
+        <PSInput />
       </div>
     </div>
     <div class="row mt-4">
@@ -100,7 +100,6 @@
   import PSSwitch from 'app/widgets/ps-switch';
   import PSInput from 'app/widgets/ps-input';
   import PSHelp from 'app/widgets/ps-help';
-  import PSDatePicker from 'app/widgets/ps-datepicker';
   import PSFile from 'app/widgets/ps-file';
 
   export default {
@@ -109,7 +108,6 @@
       PSSwitch,
       PSInput,
       PSHelp,
-      PSDatePicker,
       PSFile,
     },
     computed: {

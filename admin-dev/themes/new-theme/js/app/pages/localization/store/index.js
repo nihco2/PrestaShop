@@ -38,6 +38,7 @@ const state = {
   isReady: false,
   currentLocalization: {},
   localizations: [],
+  currentCurrencyUrl: null,
 };
 
 const actions = {
@@ -53,9 +54,11 @@ const actions = {
     });
   },
   getCurrency: () => {
-    const url = window.data.apiLocalizationCurrencyUrl;
+    const apiLocalizationCurrencyUrl = window.data.apiLocalizationCurrencyUrl;
+    const url = state.currentCurrencyUrl ? state.currentCurrencyUrl : apiLocalizationCurrencyUrl;
     Vue.http.get(url).then((response) => {
       state.currency = response.body.data;
+      state.currentCurrencyUrl = response.body.info.current_url;
     }, (error) => {
       showGrowl('error', error.statusText);
     });
@@ -63,9 +66,7 @@ const actions = {
   getCurrencies: () => {
     const url = window.data.apiLocalizationCurrenciesUrl;
     Vue.http.get(url).then((response) => {
-      _.forEach(response.body.data, (currency) => {
-        state.currencies.push(currency.name);
-      });
+      state.currencies = response.body.data;
     }, (error) => {
       showGrowl('error', error.statusText);
     });
@@ -75,7 +76,7 @@ const actions = {
 const getters = {
   currentLocalization: () =>  _.find(state.currency.localizations, { isCurrent: true }),
   localizations: () => {
-    _.forEach(state.currency.localizations, (localization) => { 
+    _.forEach(state.currency.localizations, (localization) => {
       state.localizations.push(localization);
     });
     return state.localizations;
