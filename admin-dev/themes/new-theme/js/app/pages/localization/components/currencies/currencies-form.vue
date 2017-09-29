@@ -21,10 +21,10 @@
       </div>
       <div class="col-sm-1">
         <label>{{trans('label_symbol')}}</label>
-        <PSInput />
+        <PSInput :value="symbol" />
       </div>
       <div class="col-sm-1 align-content-end">
-        <PSSelect>en</PSSelect>
+        <PSSelect id="select-lang" ref="select-lang" :items="localizations" itemName="lang" itemID="lang" />
       </div>
     </div>
     <div class="row mt-4">
@@ -90,6 +90,12 @@
       currencies() {
         return this.$store.state.currencies;
       },
+      currentLocalization() {
+        return this.$store.getters.currentLocalization;
+      },
+      localizations() {
+        return this.$store.getters.localizations;
+      },
     },
     watch: {
       currencies() {
@@ -97,10 +103,20 @@
           data: this.currencies,
         });
         $('b[role="presentation"]').hide();
+      },
+      currency() {
         this.$refs.decimals.selected = this.currency.decimals;
         this.$refs['select-currencies'].selected = this.currency.name;
       },
+      currentLocalization(current) {
+        this.symbol = current.symbol;
+        this.lang = current.lang;
+        this.$refs['select-lang'].selected = this.lang;
+      },
     },
+    data: () => ({
+      symbol: '',
+    }),
   };
 </script>
 

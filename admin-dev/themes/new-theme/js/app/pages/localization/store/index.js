@@ -36,6 +36,8 @@ const state = {
   currencies: [],
   currency: {},
   isReady: false,
+  currentLocalization: {},
+  localizations: [],
 };
 
 const actions = {
@@ -70,7 +72,18 @@ const actions = {
   },
 };
 
+const getters = {
+  currentLocalization: () =>  _.find(state.currency.localizations, { isCurrent: true }),
+  localizations: () => {
+    _.forEach(state.currency.localizations, (localization) => { 
+      state.localizations.push(localization);
+    });
+    return state.localizations;
+  },
+};
+
 export default new Vuex.Store({
   state,
   actions,
+  getters,
 });
